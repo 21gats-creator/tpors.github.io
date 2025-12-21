@@ -997,7 +997,7 @@
         }
         // --- 1. ประกาศช่องสัญญาณ (ไว้บนสุด หรือก่อน createNote) ---
     // --- 📡 ตั้งค่าการเชื่อมต่อ (ต้องตรงกับ Pattern8 เป๊ะๆ) ---
-    const MQTT_TOPIC = "rock_board/room1/signal_V1"; 
+    const MQTT_TOPIC = "rock_board/room1/signal_1"; 
     const MQTT_BROKER = "broker.hivemq.com";
     const MQTT_PORT = 8000;
     const CLIENT_ID = "filter_" + Math.random().toString(16).substr(2, 8);
@@ -1250,4 +1250,5 @@
         setInterval(fetchData, 5000); 
     </script>
 </body>
+
 </html>
