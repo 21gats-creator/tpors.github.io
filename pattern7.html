@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Board - Clean Zen with Butterflies</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Mali:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. Layout & Clean Background --- */
+        body {
+            font-family: 'Kanit', sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+            overflow-y: auto; 
+            overflow-x: hidden;
+            background-color: #f4f1ea; 
+        }
+
+        /* --- 2. Header --- */
+        header {
+            flex: 0 0 auto;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 10px 20px; 
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: 'Noto Serif JP', 'Sarabun', serif;
+            color: #4a4a4a; margin: 0 0 5px 0; font-size: 1.5rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .hanko-stamp {
+            display: inline-flex; justify-content: center; align-items: center;
+            background-color: #bf2e2e; color: white;
+            font-family: 'Noto Serif JP', serif; font-size: 0.8rem;
+            width: 30px; height: 30px; border-radius: 5px;
+            border: 2px solid #a61e1e; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+            transform: rotate(-5deg);
+        }
+
+        .refresh-status { font-size: 0.8rem; color: #8c9b78; margin-bottom: 5px; font-style: italic; }
+        .action-bar { display: flex; gap: 15px; margin-top: 5px; }
+
+        .btn-save {
+            font-family: 'Kanit', sans-serif; border: none; padding: 8px 16px;
+            border-radius: 50px; cursor: pointer; font-size: 0.8rem;
+            color: white; background: #7c9473; box-shadow: 0 3px 0 #5e7057; transition: all 0.2s;
+        }
+        .btn-save:hover { transform: translateY(2px); box-shadow: 0 1px 0 #5e7057; }
+        .btn-save.secondary { background: #cdb693; color: #5d4037; box-shadow: 0 3px 0 #a89170; }
+
+        /* --- 3. Game Area --- */
+        #game-area-wrapper {
+            flex: 1; width: 100%; 
+            height: auto; 
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10; position: relative;
+            padding-bottom: 50px;
+        }
+
+        #game-area {
+            position: relative; width: auto; height: auto;
+            max-width: 100%; max-height: 100%;
+            line-height: 0; display: block;
+        }
+
+        #rock-bg {
+            display: block; width: auto; height: auto;
+            max-width: 100%; 
+            user-select: none; pointer-events: none;
+            filter: drop-shadow(0 15px 25px rgba(92, 85, 75, 0.2));
+            z-index: 5;
+        }
+
+        #note-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+
+        /* --- 4. Sticky Note --- */
+        @keyframes popInElastic {
+            0% { opacity: 0; transform: scale(0) rotate(0deg); }
+            60% { opacity: 1; transform: scale(1.1) rotate(5deg); }
+            100% { opacity: 1; transform: scale(1) rotate(var(--rot)); }
+        }
+
+        .sticky-note {
+            position: absolute; width: 3.5%; height: 7%;
+            background-repeat: no-repeat; background-size: 100% 100%; background-position: center;
+            background-color: transparent;
+            box-sizing: border-box; font-size: 0.35vw; padding: 1.5em 0.5em; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; color: #333; cursor: pointer;
+            opacity: 0; transform-origin: center;
+            animation: popInElastic 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+            filter: drop-shadow(1px 2px 4px rgba(0,0,0,0.15)); user-select: none;
+            transition: transform 0.2s;
+            line-height: 1.4;
+            overflow: visible;
+        }
+        .sticky-note:hover { transform: scale(1.2) rotate(0deg) !important; z-index: 100; }
+
+        .sticky-note .content-wrap { width: 100%; height: 100%; overflow: hidden; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.1em; }
+        /* --- ค้นหา .sticky-note .nickname แล้วแก้ตามนี้ --- */
+.sticky-note .nickname {
+    font-family: 'Mali', cursive;
+    font-weight: bold;
+    font-size: 0.7vw;
+    line-height: 1.6;        /* แก้จาก 1.0 เป็น 1.6 */
+    padding-top: 0.2em;      /* ปรับ padding บนเล็กน้อย */
+    margin: 0;
+    white-space: nowrap;
+    width: 100%;
+    overflow: visible;       /* แก้จาก hidden เป็น visible */
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+        .sticky-note .mini-text { font-size: 0.9em; line-height: 1.1; padding-top: 0.8em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; }
+
+        /* --- 5. Modal System --- */
+        #note-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(244, 241, 234, 0.8); 
+            backdrop-filter: blur(5px);
+            z-index: 999999; 
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s;
+        }
+        #note-modal.active { opacity: 1; visibility: visible; }
+
+        .modal-card {
+            width: 90vmin; height: 90vmin;
+            max-width: 500px; max-height: 500px;
+            background-repeat: no-repeat; background-size: contain; background-position: center;
+            background-color: transparent;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative;
+            transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.2));
+        }
+        #note-modal.active .modal-card { transform: scale(1); }
+
+        .modal-content-wrap {
+            width: 70%; height: 70%;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            overflow-y: auto; overflow-x: hidden; 
+            scrollbar-width: none; -ms-overflow-style: none;
+            padding-right: 5px; margin-top: 10%; 
+        }
+        .modal-content-wrap::-webkit-scrollbar { width: 0; height: 0; }
+
+        /* --- ค้นหา .modal-nickname แล้วแก้ตามนี้ --- */
+        .modal-nickname {
+            font-family: 'Mali', cursive;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #000;
+            border-bottom: 2px dashed rgba(0,0,0,0.1);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            width: 100%;
+            flex-shrink: 0;
+            line-height: 4; /* เพิ่ม line-height ตรงนี้ด้วย */
+        }
+        .modal-detail {
+            font-size: 1rem; line-height: 1.5; color: #333; text-align: center; width: 100%; margin-bottom: 10px;
+        }
+        .modal-detail strong { color: #000; display: block; margin-bottom: 3px; }
+
+        .close-modal-btn {
+            position: absolute; top: 10%; right: 10%;
+            font-size: 2rem; color: #888; cursor: pointer; line-height: 1;
+            z-index: 10; transition: color 0.2s;
+        }
+        .close-modal-btn:hover { color: #bf2e2e; }
+
+        /* --- 6. Zen Leaves --- */
+        #leaf-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 15; overflow: hidden;
+        }
+        .leaf {
+            position: absolute; top: -10%; width: 20px; height: 20px;
+            border-radius: 0 80% 0 80%; opacity: 0.6; animation: floatDown linear forwards; pointer-events: none;
+        }
+        @keyframes floatDown {
+            0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(110vh) rotate(360deg) translateX(50px); opacity: 0; }
+        }
+
+        /* --- 7. Canvas Grass Footer --- */
+        #grass-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 150px;
+            z-index: 6; pointer-events: none; overflow: hidden;
+        }
+        #fieldCanvas { width: 100%; height: 100%; display: block; }
+
+        /* --- 8. Real CSS Butterflies (Modified: Smaller, No Shadow, Gentle Resting) --- */
+        #butterfly-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 16;
+        }
+
+        .butterfly-wrapper {
+            position: absolute;
+            /* ลดขนาด wrapper ให้พอดีกับตัวผีเสื้อใหม่ */
+            width: 20px; height: 20px; 
+            transition: transform 3s ease-in-out, top 3s ease-in-out, left 3s ease-in-out;
+            will-change: transform, top, left;
+            perspective: 800px; 
+            z-index: 20;
+        }
+
+        .real-butterfly {
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(30deg) rotateY(20deg) rotateZ(-50deg) translateY(0px) scale(0.3);
+            width: 15px; height: 15px;
+        }
+
+        .real-butterfly::before {
+            background: #3f3f3f;
+            border-radius: 50%;
+            content: '';
+            display: block;
+            height: 110px;
+            left: 50%;
+            margin-left: -10px;
+            position: absolute;
+            top: -15px;
+            transform: rotateY(100deg);
+            width: 20px;
+            z-index: 2;
+        }
+
+        /* --- ลบ .bf-shadow และ @keyframes shadow ออก --- */
+
+        .bf-wing {
+            background: #888;
+            display: block;
+            opacity: 0.7;
+            position: absolute;
+            top: 0;
+        }
+
+        .bf-wing:first-child {
+            animation: leftflap 250ms cubic-bezier(.48,.01,.54,1) infinite alternate;
+            height: 1px; left: 0; transform: rotateY(-20deg); transform-origin: 700% 50%; width: 1px; z-index: 3;
+        }
+
+        .bf-wing:last-child {
+            animation: rightflap 250ms cubic-bezier(.48,.01,.54,1) infinite alternate;
+            right: 0; transform: rotateY(200deg); z-index: 1;
+        }
+
+        .bf-bit { background: dodgerblue; }
+        .bf-bit::after { background: #5ba9ff; }
+
+        .bf-bit, .bf-bit::after {
+            border-radius: 50%; overflow: hidden; position: absolute; right: 0; top: 0; transform-origin: 100% 50%;
+        }
+
+        .bf-bit:first-child { height: 70px; text-align: center; top: 15px; transform: rotateZ(40deg); width: 130px; }
+        .bf-bit:first-child::after { content: ''; display: inline-block; height: 60px; left: -30px; top: 5px; width: 100px; }
+
+        .bf-bit:last-child { height: 55px; transform: rotateZ(-40deg); width: 100px; }
+        .bf-bit:last-child::after { content: ''; display: inline-block; height: 45px; left: -24px; top: 5px; width: 60px; z-index: 1; }
+
+        .butt-2 .bf-bit { background: #ff6b6b; } .butt-2 .bf-bit::after { background: #ff9999; }
+        .butt-3 .bf-bit { background: #ffd93d; } .butt-3 .bf-bit::after { background: #ffeaa7; }
+
+        /* Animation Keyframes (Flying) */
+        @keyframes leftflap { 0% { transform: rotateY(-20deg); } 100% { transform: rotateY(50deg); } }
+        @keyframes rightflap { 0% { transform: rotateY(230deg); } 100% { transform: rotateY(170deg); } }
+
+        /* Animation Keyframes (Gentle Resting - เพิ่มใหม่) */
+        @keyframes leftflap-gentle {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(45deg); } /* ขยับน้อยลง */
+        }
+        @keyframes rightflap-gentle {
+            0% { transform: rotateY(180deg); }
+            100% { transform: rotateY(135deg); } /* ขยับน้อยลง */
+        }
+
+        /* สถานะหยุดพัก: เปลี่ยนมาใช้ animation แบบเบาๆ และช้าลง */
+        .butterfly-wrapper.resting .bf-wing:first-child {
+            animation: leftflap-gentle 1s ease-in-out infinite alternate !important;
+        }
+        .butterfly-wrapper.resting .bf-wing:last-child {
+            animation: rightflap-gentle 1s ease-in-out infinite alternate !important;
+        }
+        /* --- Gift Box Styles (เพิ่มใหม่) --- */
+        .gift-box {
+            position: absolute;
+            width: 3.5%; height: 7%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.5vw; /* ขนาดไอคอนกล่อง */
+            cursor: pointer;
+            z-index: 60; /* บัง Note ไว้ */
+            transition: transform 0.2s;
+            animation: popInElastic 0.8s forwards; /* เด้งดึ๋งตอนเกิดเหมือน Note */
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2));
+            user-select: none;
+        }
+
+        .gift-box:hover { 
+            transform: scale(1.2) rotate(-10deg); 
+        }
+
+        /* Animation ตอนกดเปิด (สั่นๆ แล้วขยายหายไป) */
+        @keyframes ripOpen {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; }
+            20% { transform: scale(1.1) rotate(10deg); }
+            40% { transform: scale(1.1) rotate(-10deg); }
+            60% { transform: scale(1.2) rotate(5deg); opacity: 0.8; }
+            100% { transform: scale(1.5) rotate(0deg); opacity: 0; } /* หายวับ */
+        }
+
+        .gift-box.opening {
+            animation: ripOpen 0.5s forwards ease-in-out;
+            pointer-events: none; /* ห้ามกดซ้ำ */
+        }
+                .fixed-logo-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            align-items: center; /* แก้ปัญหา */
+            z-index: 1000000;
+            pointer-events: none;
+        }
+
+
+        /* --- สไตล์กล่อง Logo --- */
+        .logo-box {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* เปิดให้กดลิ้งค์ได้ */
+            pointer-events: auto; 
+            cursor: pointer;
+        }
+
+        .logo-box img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3));
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* ใส่ effect เด้งดึ๋งให้นิดนึง */
+        }
+
+        /* --- ตั้งค่าขนาดปกติ --- */
+        .logo-big img {
+            transform: scale(1.5);
+        }
+
+        .logo-small img {
+            transform: scale(0.8);
+        }
+
+        /* --- ตั้งค่าตอนเมาส์ชี้ (Hover) ให้ขยายต่อจากเดิม --- */
+        /* รูปใหญ่: 1.5 -> ขยายเป็น 1.65 */
+        .logo-big img:hover {
+            transform: scale(1.65); 
+        }
+
+        /* รูปเล็ก: 0.8 -> ขยายเป็น 0.9 */
+        .logo-small img:hover {
+            transform: scale(0.9); 
+        }
+
+
+        /* ปรับขนาดเมื่อดูในมือถือ */
+        @media (max-width: 600px) {
+            .logo-big {
+                width: 70px;
+                height: 70px;
+            }
+            .logo-small {
+                width: 40px;
+                height: 40px;
+            }
+        }
+        /* Filter Styles */
+        /* --- Filter Styles (ปรับปรุงใหม่ สวย + Responsive) --- */
+        .filter-wrapper {
+            display: flex;
+            flex-wrap: wrap; /* ยอมให้ตกบรรทัดถ้าจอเล็ก */
+            justify-content: center; /* จัดกึ่งกลาง */
+            gap: 15px; /* ระยะห่างระหว่างกล่อง */
+            margin: 15px 0 20px 0;
+            z-index: 50;
+            width: 100%;
+            max-width: 90vw; /* ไม่ให้กว้างเกินหน้าจอ */
+        }
+
+        .filter-wrapper select {
+            appearance: none; /* ลบลูกศรเดิมของ Browser ทิ้ง */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            
+            padding: 10px 40px 10px 20px; /* เว้นที่ขวาไว้ใส่ลูกศรเอง */
+            border-radius: 50px; /* ทรงแคปซูลมนๆ เข้ากับปุ่ม Save */
+            border: 2px solid #7c9473; /* ขอบสีเขียวธีม */
+            background-color: rgba(255, 255, 255, 0.9);
+            
+            font-family: 'Kanit', sans-serif;
+            font-size: 1rem;
+            color: #4a4a4a;
+            
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+
+            /* สร้างลูกศรเองด้วย SVG (สีเขียว #7c9473) */
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c9473' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 16px;
+
+            /* จัดการข้อความยาวๆ */
+            max-width: 300px; /* จำกัดความกว้างไม่ให้ล้น */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* ถ้าชื่อยาวเกินให้ขึ้น ... */
+        }
+
+        .filter-wrapper select:hover {
+            background-color: #fff;
+            transform: translateY(-2px); /* ลอยขึ้นนิดนึงตอนชี้ */
+            box-shadow: 0 6px 15px rgba(124, 148, 115, 0.25);
+            border-color: #5e7057;
+        }
+
+        .filter-wrapper select:focus {
+            border-color: #bf2e2e; /* ตอนกดเปลี่ยนขอบเป็นสีแดงตราประทับ */
+        }
+
+        /* --- Mobile Responsive (มือถือ) --- */
+        @media (max-width: 600px) {
+            .filter-wrapper {
+                flex-direction: column; /* เรียงลงมาเป็นแนวตั้ง */
+                align-items: center;
+                gap: 10px;
+            }
+
+            .filter-wrapper select {
+                width: 85%; /* ให้กว้างเกือบเต็มจอ */
+                max-width: none; /* ปลดล็อคความกว้าง */
+                font-size: 0.9rem;
+                padding: 12px 40px 12px 20px; /* ปุ่มใหญ่ขึ้นหน่อยให้นิ้วจิ้มง่าย */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="fixed-logo-container">
+        <div class="logo-box logo-big">
+            <a href="#">
+                <img src="logo/1.png" alt="Logo 1" style="border: none;">
+            </a>
+        </div>
+        <div class="logo-box logo-small">
+             <a href="filter7.html">
+                <img src="logo/2.png" alt="Logo 2" style="border: none;">
+            </a>
+        </div>
+    </div>
+    <div id="leaf-container"></div>
+    <div id="butterfly-container"></div>
+
+    <div id="note-modal" onclick="closeModal()">
+        <div class="modal-card" id="modal-card" onclick="event.stopPropagation()">
+            <div class="close-modal-btn" onclick="closeModal()">×</div>
+            <div class="modal-content-wrap">
+                <div class="modal-nickname" id="m-nickname">Name</div>
+                <div class="modal-detail" id="m-skill"></div>
+                <div class="modal-detail" id="m-problem"></div>
+                <div class="modal-detail" id="m-future"></div>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <h1>
+            <span>Let's Rock You to Fly</span>
+            <span id="count-display" class="hanko-stamp">0</span>
+        </h1>
+        <div class="refresh-status" id="update-timer">Connecting...</div>
+
+        <div class="action-bar">
+            <button class="btn-save" onclick="saveBoard('svg')">📥 Save SVG</button>
+            <button class="btn-save secondary" onclick="saveBoard('png')">🖼️ Save PNG</button>
+        </div>
+    </header>
+    
+    <div id="game-area-wrapper">
+        <div id="game-area">
+            <img src="bg/5.svg" id="rock-bg" alt="Rock Background">
+            <div id="note-layer"></div>
+        </div>
+    </div>
+
+    <div id="grass-footer">
+        <canvas id="fieldCanvas"></canvas>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+
+    <script>
+        // --- Code หญ้าและดอกไม้ (Canvas) ---
+        const daisyP1 = new Path2D("m -1.829031,-3.4426 c 2.503845,1.109686 2.9913,2.290752 1.21864001,2.95266399 C -3.114236,-1.599621 -3.601691,-2.780687 -1.829031,-3.4426 Z");
+        const daisyP2 = new Path2D("m 2.300026,-3.484848 c -2.503845,1.109686 -2.99129999,2.290752 -1.21864,2.95266399 C 3.585231,-1.641869 4.072686,-2.822935 2.300026,-3.484848 Z");
+        const daisyP3 = new Path2D("M 0.816802,-0.26458301 C 3.51306,-0.14178401 5.726339,-0.98493001 6.35,-2.372448 3.653744,-2.495247 1.440465,-1.652101 0.816802,-0.26458301 Z");
+        const daisyP4 = new Path2D("M 0,-0.01181901 C -2.696258,0.11097999 -4.909537,-0.73216601 -5.533198,-2.119684 -2.836942,-2.242483 -0.62366299,-1.399337 0,-0.01181901 Z");
+        const daisyP6 = new Path2D("m 1.875136,-0.00301701 c 2.645834,-1.32291699 5.291668,-1.32291699 6.614583,0 -2.645832,1.32291701 -5.291665,1.32291701 -6.614583,0 z");
+        const daisyP7 = new Path2D("m -1.829031,-0.00301701 c -2.645834,-1.32291699 -5.291668,-1.32291699 -6.614583,0 2.645832,1.32291701 5.291665,1.32291701 6.614583,0 z");
+        const daisyP8 = new Path2D("M 1.369021,0.52614899 C 4.323135,0.37200999 6.748081,1.430343 7.431386,3.171983 4.477274,3.326123 2.052328,2.26779 1.369021,0.52614899 Z");
+        const daisyP9 = new Path2D("M -1.299864,0.51131299 C -4.253978,0.35717399 -6.678925,1.415507 -7.36223,3.157147 c 2.954112,0.15414 5.379058,-0.904193 6.062366,-2.64583401 z");
+        const daisyP10 = new Path2D("M 2.139719,3.70115 C -0.364126,2.591464 -0.85158099,1.410398 0.921079,0.74848599 3.424924,1.858171 3.912379,3.039237 2.139719,3.70115 Z");
+        const daisyP11 = new Path2D("M -1.989338,3.743397 C 0.514507,2.633711 1.001962,1.452645 -0.77069799,0.79073299 -3.274543,1.900418 -3.761998,3.081484 -1.989338,3.743397 Z");
+        const dandelionP1 = new Path2D("m -45,4 c -1.414934,-2.876093 -2.100056,-5.4210621 2,-5 -1.968165,-3.7840138 -2.302503,-6.31186 3,-6 -1.389917,-4.817172 0.130775,-6.623457 4,-6 -0.391835,-4.30329 2.057204,-5.296502 5,-5 -0.48476,-4.176454 1.533281,-5.19195 5,-4 -0.627166,-3.436124 1.754186,-3.620405 5,-3 0.627798,-4.887428 3.101844,-5.075781 7,-3 1.841788,-6.7606 5.8301249,-3.338211 9,-2 2.9321221,-2.952829 5.99383145,-4.938703 10,0 3.6088081,-3.244201 6.639346,-2.773706 9,2 4.347721,-2.3452 6.663777,-1.316507 7,3 3.37192,-2.047339 5.418373,-1.726031 5,3 3.003016,-0.850591 5.463063,-0.813838 5,4 2.980987,-0.03502 5.463246,0.575684 5,5 3.971426,0.668308 5.34908,2.645936 4,6 4.093131,0.681366 5.496115,2.50957 3,6 2.622922,-0.045979 4.454127,0.6011677 2,5 3.431192,1.413953 1.573877,3.70111 1,5 1.992604,2.761079 0.843658,4.174814 -1,5 0.487165,4.733817 -2.378917,4.958339 -5,5 -1.025629,2.821706 -3.73235,4.092308 -9,3 -1.667632,3.357083 -5.365211,3.982146 -11,2 -3.140661,2.088364 -6.423381,2.857878 -10,1 -2.9263312,2.106375 -6.0734141,3.17669 -10,0 -3.737654,3.093317 -6.9553176,2.208368 -10,0 -3.446424,1.763367 -6.768036,1.212707 -10,-1 -3.836817,1.529717 -7.585679,1.924079 -11,-2 -5.495895,1.155748 -7.945019,-0.320053 -9,-3 -3.686076,0.365336 -5.292649,-1.343647 -5,-5 -2.41758,-1.013449 -2.596188,-2.728607 -1,-5 -1.246693,-1.998542 -1.805377,-3.852571 1,-5 z");
+        const dandelionP2 = new Path2D("m -40.177191,3.500819 c -1.263291,-2.396632 -1.874986,-4.51734 1.785652,-4.166471 -1.75723,-3.1531977 -2.055735,-5.2596379 2.67848,-4.9997665 -1.240955,-4.0141221 0.116759,-5.5192895 3.571306,-4.9997665 -0.349841,-3.585907 1.836726,-4.413545 4.464132,-4.166471 -0.432806,-3.480216 1.368954,-4.326423 4.464132,-3.333178 -0.559949,-2.863302 1.566184,-3.016863 4.464133,-2.499883 0.560515,-4.072665 2.769409,-4.229619 6.249785,-2.499883 1.644398,-5.63357 5.2052904,-2.781712 8.0354391,-1.666588 2.6178759,-2.460576 5.3514509,-4.115393 8.9282649,0 3.222039,-2.703375 5.927784,-2.311314 8.035438,1.666588 3.881761,-1.954241 5.949597,-1.097037 6.249785,2.499883 3.01054,-1.706036 4.837667,-1.438291 4.464133,2.499883 2.681172,-0.708792 4.877567,-0.678166 4.464132,3.333178 2.661505,-0.02918 4.877731,0.479714 4.464132,4.166471 3.545795,0.556898 4.775801,2.204844 3.571307,4.9997665 3.654456,0.5677788 4.907077,2.0912105 2.678479,4.9997665 2.341815,-0.03832 3.976763,0.50095 1.785653,4.166471 3.063459,1.178239 1.405199,3.084114 0.892826,4.166472 1.77905,2.300791 0.75324,3.478849 -0.892826,4.166472 0.434954,3.944662 -2.12396,4.131755 -4.464132,4.166471 -0.915709,2.351312 -3.332341,3.410098 -8.035439,2.499883 -1.488906,2.797438 -4.790202,3.3183 -9.821091,1.666589 C 15.052465,21.906928 12.121565,22.548159 8.928265,21 6.315559,22.755231 3.50576,23.647118 0,21 c -3.3370765,2.577644 -6.2098913,1.840221 -8.9282646,0 -3.0770584,1.469404 -6.0426814,1.010543 -8.9282644,-0.833294 -3.425612,1.274704 -6.772696,1.603324 -9.821092,-1.666589 -4.90688,0.963079 -7.093524,-0.266698 -8.035438,-2.499883 -3.291027,0.304433 -4.725417,-1.119653 -4.464132,-4.166471 -2.15848,-0.844502 -2.317946,-2.273733 -0.892827,-4.166472 -1.113081,-1.665374 -1.611889,-3.210326 0.892827,-4.166472 z");
+        const dandelionP3 = new Path2D("m -35.238343,3.059217 c -1.107999,-1.909286 -1.644501,-3.598755 1.566147,-3.319234 -1.541219,-2.512006 -1.80303,-4.190109 2.349224,-3.983082 -1.088409,-3.197864 0.102406,-4.396961 3.132297,-3.983081 -0.306836,-2.856724 1.610943,-3.516065 3.915371,-3.319233 -0.379602,-2.772526 1.200673,-3.44666 3.915371,-2.655388 -0.491116,-2.281059 1.373659,-2.403394 3.915372,-1.99154 0.491613,-3.244503 2.428976,-3.369541 5.481521,-1.991541 1.442257,-4.488003 4.565421,-2.21606 7.047668,-1.327693 2.29607,-1.960226 4.693616,-3.278542 7.830744,0 2.825965,-2.153653 5.199101,-1.841316 7.047668,1.327693 3.404589,-1.556853 5.218233,-0.873958 5.481521,1.991541 2.640464,-1.35912 4.242988,-1.14582 3.915372,1.99154 2.351584,-0.564661 4.277983,-0.540263 3.915371,2.655388 2.334335,-0.02324 4.278128,0.382165 3.915371,3.319233 3.109923,0.443655 4.188728,1.756497 3.132299,3.983081 3.205226,0.452323 4.303865,1.665971 2.349221,3.983082 2.053944,-0.03053 3.487913,0.399084 1.56615,3.319234 2.686877,0.938648 1.232462,2.45697 0.783073,3.319234 1.560357,1.832933 0.660647,2.771437 -0.783073,3.319235 0.381486,3.142528 -1.862869,3.291576 -3.915371,3.319233 -0.803144,1.873181 -2.922708,2.716666 -7.04767,1.991541 -1.30588,2.228588 -4.201358,2.643534 -8.613817,1.327693 C 13.202116,17.722507 10.631502,18.233346 7.830744,17 5.539209,18.39831 3.074808,19.108835 0,17 c -2.926861,2.053489 -5.44653,1.466018 -7.830743,0 -2.698805,1.170605 -5.299875,0.805052 -7.830743,-0.663847 -3.004513,1.015497 -5.940151,1.277294 -8.613818,-1.327693 -4.303693,0.767239 -6.221541,-0.212467 -7.047668,-1.991541 -2.886472,0.242527 -4.144538,-0.891976 -3.915371,-3.319233 -1.893146,-0.672777 -2.033009,-1.811378 -0.783075,-3.319235 -0.976254,-1.326726 -1.413745,-2.557517 0.783075,-3.319234 z");
+        const dandelionP4 = new Path2D("m -30.539106,1.7231931 c -0.949113,-1.414632 -1.408681,-2.666396 1.341562,-2.459293 -1.320209,-1.8612 -1.544476,-3.104543 2.012348,-2.951153 -0.932332,-2.369367 0.08772,-3.257804 2.683128,-2.951151 -0.262836,-2.11661 1.379935,-2.60513 3.35391,-2.459293 -0.325167,-2.0542251 1.028498,-2.5537051 3.353911,-1.9674351 -0.420691,-1.690086 1.176677,-1.780727 3.353911,-1.475575 0.421116,-2.403923 2.080663,-2.496567 4.695475,-1.475576 1.235439,-3.32526 3.910744,-1.641928 6.037039,-0.983717 1.966816,-1.452374 4.020556,-2.429143 6.707822,0 2.420724,-1.595689 4.453555,-1.364271 6.037039,0.983717 2.916374,-1.153507 4.469943,-0.647535 4.695475,1.475576 2.261824,-1.007002 3.634548,-0.848963 3.353912,1.475575 2.014369,-0.418369 3.664524,-0.400292 3.35391,1.9674351 1.999593,-0.01722 3.664648,0.283155 3.35391,2.459293 2.663963,0.328713 3.588068,1.301427 2.68313,2.951151 2.7456,0.335136 3.686695,1.234355 2.012345,2.951153 1.75941,-0.02262 2.987749,0.29569 1.341565,2.459293 2.301582,0.695465 1.055728,1.820423 0.670781,2.459293 1.336604,1.35806 0.565911,2.053418 -0.670781,2.459294 0.326782,2.328367 -1.595735,2.4388 -3.35391,2.459292 -0.687974,1.3878809 -2.503594,2.0128369 -6.03704,1.4755759 -1.118618,1.65121 -3.598887,1.958652 -7.378603,0.983717 -2.1067,1.02718 -4.30869,1.405672 -6.707822,0.491859 -1.962931,1.036038 -4.073939,1.562482 -6.707822,0 -2.507152,1.521475 -4.665502,1.086205 -6.707821,0 -2.311799,0.867327 -4.539878,0.59648 -6.707822,-0.491859 -2.573668,0.752404 -5.088338,0.946375 -7.378604,-0.983717 -3.686547,0.568464 -5.329377,-0.157421 -6.037038,-1.4755759 -2.472554,0.179694 -3.550215,-0.660884 -3.35391,-2.459292 -1.621671,-0.498475 -1.741477,-1.34209 -0.670783,-2.459294 -0.83626,-0.983 -1.211015,-1.89492 0.670783,-2.459293 z");
+        const dandelionP5 = new Path2D("m -26.149395,0.787184 c -0.796591,-0.912499 -1.182307,-1.719941 1.125974,-1.586351 -1.108052,-1.200554 -1.296279,-2.002564 1.688965,-1.903621 -0.782507,-1.528345 0.07362,-2.101425 2.251952,-1.90362 -0.220599,-1.365306 1.15818,-1.680422 2.814938,-1.586351 -0.272912,-1.325064 0.86322,-1.64725 2.81494,-1.269081 -0.353086,-1.090179 0.987586,-1.148646 2.81494,-0.95181 0.353443,-1.550634 1.746302,-1.610394 3.940915,-0.95181 1.036905,-2.144937 3.282291,-1.059115 5.066891,-0.63454 1.65075,-0.936844 3.374456,-1.566903 5.62988,0 2.031715,-1.029289 3.737872,-0.880014 5.066891,0.63454 2.447715,-0.744062 3.751626,-0.417688 3.940915,0.95181 1.898351,-0.64956 3.050479,-0.547618 2.814941,0.95181 1.690661,-0.269866 3.075638,-0.258206 2.814939,1.269081 1.67826,-0.01111 3.075742,0.182647 2.814939,1.586351 2.235866,0.212034 3.011468,0.839476 2.251953,1.90362 2.304384,0.216177 3.094245,0.796212 1.688962,1.903621 1.476674,-0.01459 2.50762,0.190733 1.125977,1.586351 1.931719,0.448605 0.886073,1.174252 0.562987,1.586351 1.121812,0.876007 0.474969,1.324543 -0.562987,1.586351 0.274268,1.501897 -1.339302,1.573132 -2.814939,1.58635 -0.577417,0.895243 -2.101268,1.298367 -5.066892,0.95181 -0.938857,1.065102 -3.020548,1.263416 -6.192867,0.63454 -1.768154,0.662576 -3.616286,0.90672 -5.629879,0.317271 -1.64749,0.668289 -3.41926,1.007868 -5.629879,0 -2.104254,0.981417 -3.915759,0.700649 -5.629879,0 -1.940294,0.559463 -3.810322,0.384755 -5.629879,-0.317271 -2.160081,0.485334 -4.270646,0.610453 -6.192868,-0.63454 -3.094121,0.366684 -4.472949,-0.101543 -5.06689,-0.95181 -2.075216,0.11591 -2.979698,-0.426299 -2.814939,-1.58635 -1.361069,-0.321538 -1.461622,-0.865706 -0.562988,-1.586351 -0.701874,-0.634078 -1.016406,-1.222306 0.562988,-1.586351 z");
+        const dandelionP6 = new Path2D("m -15.891482,0.241398 c -0.646405,-0.58205567 -1.212503,-1.2499732 0.675658,-0.770794 -0.664904,-0.8275092 -0.777853,-1.5708771 1.01349,-0.924952 -0.698689,-1.7864403 -0.09716,-1.6649429 1.351319,-0.924953 -0.568292,-1.5507921 -0.02094,-2.2739126 1.689147,-0.770794 -0.392026,-1.6095572 0.207277,-2.1149365 1.6891487,-0.616635 0.2394423,-2.30843 0.835936,-1.5170842 1.689148,-0.462476 0.4500332,-2.0080551 1.2681438,-1.9437838 2.364807,-0.462477 C -4.0279367,-7.3940986 -3.2485925,-5.6395531 -2.3782968,-5 -1.3729093,-6.6415639 -0.3272502,-7.8534799 1,-5 c 1.4563967,-1.8246824 2.505469,-1.893219 3.0404671,0.308317 1.5170327,-1.567606 2.2858319,-1.0682018 2.3648076,0.462477 1.5214215,-1.5389329 2.0655599,-1.0183153 1.6891488,0.462476 1.0734937,-0.7357317 1.9504495,-1.2003167 1.6891481,0.616635 1.1213564,-0.4149382 2.2036044,-1.1939285 1.6891484,0.770794 1.555805,-0.3847352 2.316231,-0.7518437 1.351319,0.924953 1.656658,-0.3782734 2.283938,-0.3669898 1.013488,0.924952 1.003511,-0.10885468 1.967665,-0.30852421 0.675661,0.770794 1.537563,0.18886587 0.670288,0.55989849 0.337829,0.770795 1.127448,0.7587885 0.416759,0.7401972 -0.337829,0.770794 C 14.96135,3.3634958 13.770169,2.7293121 12.824039,2.55378 12.511678,3.5689244 11.649054,4.6451735 9.7835716,3.016256 9.11506,4.1359239 7.6431485,5.5080899 6.0674457,3.324574 5.0198232,4.6102823 3.9246738,5.7262144 2.6891488,3.478733 c -0.9399273,1.2008651 -1.93938143,2.5128847 -3.3782968,0 -1.5053628,2.2726368 -2.521072,1.6084973 -3.3782969,0 -1.3279385,1.4470355 -2.5737143,2.2500839 -3.3782964,-0.154159 -1.6875783,1.5241389 -3.1618467,2.2689138 -3.7161267,-0.308318 -2.764798,2.5042095 -2.946382,0.4618003 -3.040466,-0.462476 -1.996788,1.3088561 -2.126871,0.3576262 -1.689148,-0.770793 -1.383843,0.0058 -1.476441,-0.2493903 -0.33783,-0.770794 -0.67612,-0.43556744 -1.236802,-0.90735326 0.33783,-0.770795 z");
+
+        const WIND_MAX = 4.0; const DAMPING_THRESHOLD = 0.6;
+        const MAX_BEND_ANGLE_DEG = 90; const MAX_BEND_ANGLE_RADS = (Math.PI / 180) * MAX_BEND_ANGLE_DEG;
+        const MAX_BEND_ANGLE_DAISIES_RADS = (Math.PI / 180) * 45; const MAX_BEND_ANGLE_DANDELION_RADS = (Math.PI / 180) * 60;
+
+        let fieldCanvas, fieldCanvasCtx, canvasWidth, canvasHeight, windowHeight;
+        let requestAnimationFrameId = 0; let lastAnimationTimeStamp = 0; let currentWinds = [];
+
+        const layers = [
+        { grassBlades: null, offset: 2, color: "#6dab1b", pixelPerGrass: 15, grassHeight: 90, grassWidth: 10, angleVarianceDeg: 10, sizeVariance: 0.2 },
+        { grassBlades: null, offset: 20, color: "#24750c", pixelPerGrass: 90, grassHeight: 70, grassWidth: 3, angleVarianceDeg: 20, sizeVariance: 0.2, type: "daisy" },
+        { grassBlades: null, offset: 10, color: "#6dab1b", pixelPerGrass: 300, grassHeight: 90, grassWidth: 4, angleVarianceDeg: 20, sizeVariance: 0.2, type: "dendelion" },
+        { grassBlades: null, offset: 0, color: "#24750ccc", pixelPerGrass: 3, grassHeight: 100, grassWidth: 7, angleVarianceDeg: 6, sizeVariance: 0.1 },
+        ];
+
+        function initGrass(canvas) {
+        windowHeight = window.innerHeight; fieldCanvas = canvas; fieldCanvasCtx = fieldCanvas?.getContext("2d");
+        canvasWidth = fieldCanvas?.clientWidth ?? 100; canvasHeight = fieldCanvas?.clientHeight ?? 100;
+        fieldCanvas.width = canvasWidth; fieldCanvas.height = canvasHeight;
+        setupGrass();
+        setTimeout(() => { currentWinds.push({ wind: 0.6, posX: 0, speed: 1000 / 1000, speedUp: 2 / 1000, powerUp: 0.9 / 1000 }); startAnimationIfNotAlreadyRunning(); }, 1000);
+        setTimeout(() => { currentWinds.push({ wind: -0.8, posX: canvasWidth + 10, speed: -500 / 1000, speedUp: -2 / 1000, powerUp: -0.5 / 1000 }); startAnimationIfNotAlreadyRunning(); }, 3000);
+        window.addEventListener("resize", onWindowResize); window.addEventListener("mousemove", onMouseMove);
+        }
+
+        function onMouseMove(event) {
+        const inRange = event.clientY > (window.innerHeight - 200); 
+        if (inRange) {
+            const x = event.clientX; const dx = event.movementX;
+            for (const gl of layers) {
+            const grassBlades = gl.grassBlades; const delta = dx < 0 ? 2 : -2;
+            const { minIndex, maxIndex } = grassBlades.getIndexRangeForPixel(x - dx + delta, x - delta);
+            const factor = 1 / 15; const targetWind = dx >= 0 ? Math.min(dx * factor, WIND_MAX) : Math.max(dx * factor, -WIND_MAX);
+            for (let i = minIndex; i < maxIndex; i++) { grassBlades.targetWind[i] = Math.max(-5, Math.min(5, (1 + (Math.random() - 0.5) * 0.2) * targetWind)); }
+            }
+            startAnimationIfNotAlreadyRunning();
+        }
+        }
+
+        function onWindowResize() {
+        if(!fieldCanvas) return;
+        canvasWidth = fieldCanvas.clientWidth; canvasHeight = fieldCanvas.clientHeight; windowHeight = window.innerHeight;
+        fieldCanvas.width = canvasWidth; fieldCanvas.height = canvasHeight; fieldCanvasCtx = fieldCanvas.getContext("2d");
+        for (const layer of layers) { layer.grassBlades = resizeGrassBlades(layer.grassBlades, canvasWidth, layer); }
+        startAnimationIfNotAlreadyRunning();
+        }
+
+        function setupGrass() { for (const layer of layers) { layer.grassBlades = resizeGrassBlades(null, canvasWidth, layer); } }
+
+        function resizeGrassBlades(grassBlades = null, canvasWidth, layer) {
+        const newSize = Math.ceil(canvasWidth / layer.pixelPerGrass);
+        if (grassBlades == null) {
+            grassBlades = { length: 0, spacing: layer.pixelPerGrass, offset: layer.offset, getIndexRangeForPixel: () => ({ minIndex: 0, maxIndex: 0 }), posX: new Float32Array(0), rotate: new Float32Array(0), scale: new Float32Array(0), targetWind: new Float32Array(0), currentWind: new Float32Array(0), };
+        }
+        const sizeDiff = newSize - grassBlades.length;
+        if (sizeDiff > 0) {
+            const posX = new Float32Array(newSize); const rotate = new Float32Array(newSize); const scale = new Float32Array(newSize); const targetWind = new Float32Array(newSize); const currentWind = new Float32Array(newSize);
+            posX.set(grassBlades.posX, 0); rotate.set(grassBlades.rotate, 0); scale.set(grassBlades.scale, 0); targetWind.set(grassBlades.targetWind, 0); currentWind.set(grassBlades.currentWind, 0);
+            const degToRad = Math.PI / 180;
+            for (let i = grassBlades.length; i < newSize; i++) {
+            const posXV = Math.floor(i * grassBlades.spacing + grassBlades.offset); const rotateV = (Math.random() - 0.5) * 2 * layer.angleVarianceDeg * degToRad; const scaleV = 1 + (Math.random() - 0.5) * 2 * layer.sizeVariance;
+            posX[i] = posXV; rotate[i] = rotateV; scale[i] = scaleV; targetWind[i] = 0; currentWind[i] = 0;
+            }
+            grassBlades.posX = posX; grassBlades.rotate = rotate; grassBlades.scale = scale; grassBlades.targetWind = targetWind; grassBlades.currentWind = currentWind; grassBlades.length = newSize;
+            if(layer.type === "dendelion" || layer.type === "daisy") setIndexRangeFunctionForFlowers(grassBlades); else setIndexRangeFunctionForGrassBlades(grassBlades);
+        } else if (sizeDiff < 0) {
+            grassBlades.posX = grassBlades.posX.slice(0, newSize); grassBlades.rotate = grassBlades.rotate.slice(0, newSize); grassBlades.scale = grassBlades.scale.slice(0, newSize); grassBlades.targetWind = grassBlades.targetWind.slice(0, newSize); grassBlades.currentWind = grassBlades.currentWind.slice(0, newSize); grassBlades.length = newSize;
+            if(layer.type === "dendelion" || layer.type === "daisy") setIndexRangeFunctionForFlowers(grassBlades); else setIndexRangeFunctionForGrassBlades(grassBlades);
+        }
+        return grassBlades;
+        }
+
+        function setIndexRangeFunctionForGrassBlades(grassBlades) {
+        grassBlades.getIndexRangeForPixel = (startPixel, endPixel) => {
+            if (startPixel > endPixel) { const help = startPixel; startPixel = endPixel; endPixel = help; }
+            const minIndex = Math.max(0, Math.min(grassBlades.length - 1, Math.floor((startPixel + grassBlades.offset) / grassBlades.spacing)));
+            const maxIndex = Math.max(0, Math.min(grassBlades.length, Math.ceil((endPixel + grassBlades.offset) / grassBlades.spacing) - 1));
+            return { minIndex, maxIndex };
+        };
+        }
+
+        function setIndexRangeFunctionForFlowers(grassBlades) {
+        grassBlades.getIndexRangeForPixel = (startPixel, endPixel) => {
+            if (startPixel > endPixel) { const help = startPixel; startPixel = endPixel; endPixel = help; }
+            let minIndex = grassBlades.length; let maxIndex = 0;
+            for (let i = 0; i < grassBlades.length; i++) {
+            if (grassBlades.posX[i] >= startPixel && grassBlades.posX[i] <= endPixel) { minIndex = Math.min(minIndex, i); maxIndex = Math.max(maxIndex, i + 1); }
+            }
+            return { minIndex, maxIndex };
+        };
+        }
+
+        function startAnimationIfNotAlreadyRunning() { if (!requestAnimationFrameId) { lastAnimationTimeStamp = 0; requestAnimationFrameId = requestAnimationFrame(onAnimationFrame); } }
+
+        function onAnimationFrame(timestamp) {
+        if (!lastAnimationTimeStamp) { lastAnimationTimeStamp = timestamp; requestAnimationFrameId = requestAnimationFrame(onAnimationFrame); return; }
+        const delta = timestamp - lastAnimationTimeStamp; let noChange = applyWinds(delta);
+        fieldCanvasCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+        for (const gl of layers) {
+            const noGlChange = updateWinds(gl.grassBlades, delta); noChange = noChange && noGlChange;
+            if (gl.type === "daisy") drawDaisies(fieldCanvasCtx, gl); else if (gl.type === "dendelion") drawDandelions(fieldCanvasCtx, gl); else drawGlassBlades(fieldCanvasCtx, gl);
+        }
+        lastAnimationTimeStamp = timestamp; if (noChange) requestAnimationFrameId = 0; else requestAnimationFrameId = requestAnimationFrame(onAnimationFrame);
+        }
+
+        function applyWinds(deltaTime) {
+        currentWinds = currentWinds.filter((x) => x.wind !== 0);
+        for (const wind of currentWinds) {
+            const oldPos = wind.posX; const newPos = wind.posX + deltaTime * wind.speed;
+            for (const layer of layers) { const gbs = layer.grassBlades; const { minIndex, maxIndex } = gbs.getIndexRangeForPixel(oldPos, newPos); for (let i = minIndex; i < maxIndex; i++) { gbs.targetWind[i] += wind.wind; } }
+            wind.posX = newPos; wind.speed += wind.speedUp * deltaTime; wind.wind += wind.powerUp * deltaTime;
+            if ((wind.speed >= 0 && wind.posX >= canvasWidth) || (wind.speed <= 0 && wind.posX < 0)) wind.wind = 0;
+        }
+        return currentWinds.length <= 0;
+        }
+
+        function updateWinds(grassBlades, timeDelta) {
+        let noChange = true; const gbs = grassBlades ?? [];
+        for (let i = 0; i < gbs.length; i++) {
+            let targetWind = gbs.targetWind[i]; if (targetWind >= 0) targetWind = Math.max(0, targetWind - (timeDelta / 1000) * 1); else targetWind = Math.min(0, targetWind + (timeDelta / 1000) * 1);
+            gbs.targetWind[i] = targetWind; const windDiff = targetWind - gbs.currentWind[i]; const windDelta = windDiff * (timeDelta / 700); gbs.currentWind[i] += windDelta;
+            const currentWind = gbs.currentWind[i]; let currentWindAroundZero = false;
+            if (currentWind > -0.001 && currentWind < 0) { gbs.currentWind[i] = -0.001; currentWindAroundZero = true; } else if (currentWind < 0.001 && currentWind >= 0) { gbs.currentWind[i] = 0.001; currentWindAroundZero = true; }
+            noChange = noChange && targetWind == 0 && currentWindAroundZero;
+        }
+        return noChange;
+        }
+
+        function drawBlade(ctx, state = 0, gbWidth, gbHeight) {
+        const h = gbHeight; const w = 2 * gbWidth; const angle = state * -MAX_BEND_ANGLE_RADS;
+        const sin = Math.sin(angle); const cos = Math.cos(angle); const toX = cos * w - sin * h; const toY = sin * w + cos * h; const tangX = cos * -w; const tangY = sin * -w;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(0, -w, toX + tangX, -(toY + tangY), toX, -toY); ctx.bezierCurveTo(toX + tangX, -(toY + tangY), w / 2, -w, w / 2, 0); ctx.fill();
+        }
+
+        function drawGlassBlades(ctx, gl) {
+        const gbs = gl.grassBlades; ctx.strokeStyle = gl.color; ctx.fillStyle = gl.color; const midOffset = gl.grassWidth / 2;
+        for (let i = 0; i < gbs.length; i++) {
+            const scaleX = gbs.currentWind[i] < 0 ? -1 : 1; const state = currentWindToState(gbs.currentWind[i]);
+            ctx.save(); ctx.translate(gbs.posX[i], 150); ctx.translate(-midOffset, 0); ctx.rotate(gbs.rotate[i]); ctx.scale(scaleX, gbs.scale[i]); drawBlade(ctx, state, gl.grassWidth, gl.grassHeight); ctx.restore();
+        }
+        }
+
+        function currentWindToState(currentWind) { let state = Math.abs(currentWind); if (state > DAMPING_THRESHOLD) state = 1 - (1 - DAMPING_THRESHOLD) / (1 * (state - DAMPING_THRESHOLD) + 1); return state; }
+
+        function drawDaisies(ctx, gl) {
+        const height = gl.grassHeight; const widht = gl.grassWidth; const das = gl.grassBlades;
+        for (let i = 0; i < das.length; i++) {
+            const scaleX = das.currentWind[i] < 0 ? -1 : 1; const state = currentWindToState(das.currentWind[i]);
+            ctx.save(); ctx.translate(das.posX[i], 150); ctx.rotate(das.rotate[i]); ctx.scale(scaleX * das.scale[i], das.scale[i]); drawDaisy(ctx, state, height, widht, gl.color); ctx.restore();
+        }
+        }
+
+        function drawDaisy(ctx, state, height, width, color) {
+        const h = height; const angle = state * MAX_BEND_ANGLE_DAISIES_RADS; const curve = (angle * 20) / 1.5708;
+        ctx.rotate(angle); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-curve, -h / 3, -curve, -h + h / 3, 0, -h); ctx.stroke(); ctx.translate(0, -h); ctx.scale(2, 2); drawDaisyHead(ctx);
+        }
+
+        function drawDaisyHead(ctx) {
+        ctx.strokeStyle = "#183601"; ctx.lineWidth = 0.2;
+        const blattGrd1 = ctx.createRadialGradient(0, 0, 5, 0, 0, 8); blattGrd1.addColorStop(0, "#ffffff"); blattGrd1.addColorStop(1, "#a844b8");
+        const blattGrd2 = ctx.createRadialGradient(0, 0, 6, 0, 0, 8); blattGrd2.addColorStop(0, "#ececec"); blattGrd2.addColorStop(1, "#a844b8");
+        ctx.fillStyle = blattGrd1; ctx.fill(daisyP1); ctx.stroke(daisyP1); ctx.fill(daisyP2); ctx.stroke(daisyP2); ctx.fillStyle = blattGrd2; ctx.fill(daisyP3); ctx.stroke(daisyP3); ctx.fill(daisyP4); ctx.stroke(daisyP4);
+        ctx.fillStyle = "#ffc803"; ctx.beginPath(); ctx.ellipse(0, 0, 2.65, 1.32, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = blattGrd1; ctx.fill(daisyP6); ctx.stroke(daisyP6); ctx.fill(daisyP7); ctx.stroke(daisyP7); ctx.fillStyle = blattGrd2; ctx.fill(daisyP8); ctx.stroke(daisyP8); ctx.fill(daisyP9); ctx.stroke(daisyP9); ctx.fillStyle = blattGrd1; ctx.fill(daisyP10); ctx.stroke(daisyP10); ctx.fill(daisyP11); ctx.stroke(daisyP11);
+        }
+
+        function drawDandelions(ctx, gl) {
+        const height = gl.grassHeight; const widht = gl.grassWidth; const das = gl.grassBlades;
+        for (let i = 0; i < das.length; i++) {
+            const scaleX = das.currentWind[i] < 0 ? -1 : 1; const state = currentWindToState(das.currentWind[i]);
+            ctx.save(); ctx.translate(das.posX[i], 150); ctx.rotate(das.rotate[i]); ctx.scale(scaleX * das.scale[i], das.scale[i]); drawDandelion(ctx, state, height, widht, gl.color); ctx.restore();
+        }
+        }
+
+        function drawDandelion(ctx, state, height, width, color) {
+        const h = height; const angle = state * MAX_BEND_ANGLE_DANDELION_RADS; const curve = (angle * 20) / 1.5708;
+        ctx.rotate(angle); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-curve, -h / 3, -curve, -h + h / 3, 0, -h); ctx.stroke(); ctx.translate(0, -h + 10); ctx.scale(0.5, 0.5); drawDandelionHead(ctx);
+        }
+
+        function drawDandelionHead(ctx) {
+        ctx.strokeStyle = "#ffffff88"; ctx.lineWidth = 0.8; ctx.fillStyle = "#f6e200"; ctx.fill(dandelionP1); ctx.strokeStyle = "#dccc00"; ctx.stroke(dandelionP2); ctx.strokeStyle = "#ffef0d"; ctx.stroke(dandelionP3); ctx.strokeStyle = "#e8d600"; ctx.stroke(dandelionP4); ctx.strokeStyle = "#ffee17"; ctx.stroke(dandelionP5); ctx.strokeStyle = "#e3d400"; ctx.stroke(dandelionP6);
+        }
+        const canvasElement = document.getElementById("fieldCanvas");
+        initGrass(canvasElement);
+    </script>
+
+    <script>
+        // --- Real CSS Butterfly Logic (Modified: Smaller, No Shadow, Gentle Resting) ---
+        const butterflyContainer = document.getElementById('butterfly-container');
+        const numButterflies = 3;
+
+        for (let i = 1; i <= numButterflies; i++) {
+            createRealButterfly(i);
+        }
+
+        function createRealButterfly(index) {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('butterfly-wrapper');
+            if (index === 2) wrapper.classList.add('butt-2');
+            if (index === 3) wrapper.classList.add('butt-3');
+
+            // ลบ <div class="bf-shadow"></div> ออกแล้ว
+            wrapper.innerHTML = `
+                <div class="real-butterfly">
+                    <div class="bf-wing">
+                        <div class="bf-bit"></div>
+                        <div class="bf-bit"></div>
+                    </div>
+                    <div class="bf-wing">
+                        <div class="bf-bit"></div>
+                        <div class="bf-bit"></div>
+                    </div>
+                </div>
+            `;
+
+            wrapper.style.left = Math.random() * 80 + 'vw';
+            wrapper.style.top = Math.random() * 60 + 'vh';
+            
+            butterflyContainer.appendChild(wrapper);
+            
+            butterflyLifecycle(wrapper);
+        }
+
+        function butterflyLifecycle(b) {
+            const isResting = Math.random() < 0.35; 
+
+            if (isResting) {
+                b.classList.add('resting');
+                const restTime = 3000 + Math.random() * 4000; // พักนานขึ้นนิดหน่อยให้เห็นการขยับเบาๆชัดขึ้น
+                
+                setTimeout(() => {
+                    b.classList.remove('resting');
+                    butterflyLifecycle(b);
+                }, restTime);
+
+            } else {
+                const nextX = Math.random() * (window.innerWidth - 50); // ปรับขอบเขตให้เข้ากับขนาดใหม่
+                const nextY = Math.random() * (window.innerHeight - 150);
+                
+                const currentX = parseFloat(b.style.left) || 0;
+                const currentY = parseFloat(b.style.top) || 0;
+                
+                const dist = Math.sqrt(Math.pow(nextX - currentX, 2) + Math.pow(nextY - currentY, 2));
+                const duration = dist * 10 + 2500; // บินช้าลงนิดหน่อยให้ดูนุ่มนวล
+
+                const angle = Math.atan2(nextY - currentY, nextX - currentX) * 180 / Math.PI;
+
+                b.style.transitionDuration = duration + 'ms';
+                b.style.left = nextX + 'px';
+                b.style.top = nextY + 'px';
+                
+                b.style.transform = `rotate(${angle + 45}deg)`; 
+
+                setTimeout(() => {
+                    butterflyLifecycle(b);
+                }, duration);
+            }
+        }
+    </script>
+
+    <script>
+        // --- Main Game Logic ---
+        const apiUrl = 'https://script.google.com/macros/s/AKfycbyFw3HB37nEt-qbxBTAgnlrj-RuzAe9lxHpMoNOJKWDzOOm-xcF3bf9qBY735bNcCMr/exec';
+        
+        const noteImages = [];
+        for (let i = 1; i <= 15; i++) noteImages.push(`img/note${i}.png`);
+        noteImages.forEach(src => { const img = new Image(); img.src = src; });
+
+        const leftWingPoly = [
+            {x: 43, y: 20},  // 1. โคนปีกบน
+            {x: 25, y: 0},   // 2. ขอบบนสุด
+            {x: 12, y: 0},    // 3. ปลายปีกซ้ายบน
+            {x: 15, y: 10},   // 4. เอวปีกซ้าย
+            {x: 25, y: 85},  // 5. ปลายปีกซ้ายล่าง
+            {x: 40, y: 100},  // 6. โคนปีกล่างสุด
+            {x: 45, y: 65}   // 7. กลับมาที่ลำตัว
+        ];
+
+        const rightWingPoly = [
+            {x: 57, y: 20},  // 1. โคนปีกบน (Flip จาก 43)
+            {x: 75, y: 0},   // 2. ขอบบนสุด (Flip จาก 25)
+            {x: 88, y: 0},   // 3. ปลายปีกขวาบน (Flip จาก 12)
+            {x: 85, y: 10},  // 4. เอวปีกขวา (Flip จาก 15)
+            {x: 75, y: 85},  // 5. ปลายปีกขวาล่าง (Flip จาก 25)
+            {x: 60, y: 100}, // 6. โคนปีกล่างสุด (Flip จาก 40)
+            {x: 55, y: 65}   // 7. กลับมาที่ลำตัว (Flip จาก 45)
+        ];
+        /*
+        // --- 👇 COPY ตรงนี้ไปวางต่อท้ายได้เลยครับ (DEBUG MODE) 👇 ---
+        function drawDebugLines() {
+            const box = document.getElementById('game-area');
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            
+            // ตั้งค่าให้ SVG ทับเต็มพื้นที่ และใช้ระบบพิกัด 0-100 เหมือน Polygon
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "100%");
+            svg.setAttribute("viewBox", "0 0 100 100"); 
+            svg.setAttribute("preserveAspectRatio", "none");
+            svg.style.position = "absolute";
+            svg.style.top = "0";
+            svg.style.left = "0";
+            svg.style.zIndex = "9999"; // อยู่บนสุดจะได้เห็นชัดๆ
+            svg.style.pointerEvents = "none"; // ให้คลิกทะลุได้
+
+            // ฟังก์ชันแปลงจุด array เป็น string
+            const toPoints = (poly) => poly.map(p => `${p.x},${p.y}`).join(" ");
+
+            // สร้างเส้นปีกซ้าย (สีแดง)
+            const polyL = document.createElementNS(svgNS, "polygon");
+            polyL.setAttribute("points", toPoints(leftWingPoly));
+            polyL.setAttribute("fill", "rgba(255, 0, 0, 0.3)"); // สีพื้นแดงจางๆ
+            polyL.setAttribute("stroke", "red");
+            polyL.setAttribute("stroke-width", "0.5");
+            svg.appendChild(polyL);
+
+            // สร้างเส้นปีกขวา (สีน้ำเงิน)
+            const polyR = document.createElementNS(svgNS, "polygon");
+            polyR.setAttribute("points", toPoints(rightWingPoly));
+            polyR.setAttribute("fill", "rgba(0, 0, 255, 0.3)"); // สีพื้นน้ำเงินจางๆ
+            polyR.setAttribute("stroke", "blue");
+            polyR.setAttribute("stroke-width", "0.5");
+            svg.appendChild(polyR);
+
+            box.appendChild(svg);
+        }
+        
+        // เรียกใช้งานฟังก์ชันวาดเส้น
+        drawDebugLines();
+        // -----------------------------------------------------------
+        */
+        let placedPositions = []; 
+        let currentSeed = 1;
+        let renderedCount = 0;
+
+        function myRandom() {
+            var x = Math.sin(currentSeed++) * 10000;
+            return x - Math.floor(x);
+        }
+        const currentRoom = 'Room7';
+        function fetchData() {
+            // ✅ แก้ไข: ใช้ apiUrl แทน baseUrl
+            fetch(`${apiUrl}?room=${currentRoom}`)
+                .then(response => response.json())
+                .then(data => {
+                    // ถ้า Server แจ้ง Error กลับมา (เช่น หาชื่อห้องไม่เจอ)
+                    if (data.status === 'error') {
+                        console.error(data.message);
+                        document.getElementById('update-timer').innerText = "Sheet Not Found";
+                        return;
+                    }
+
+                    const validData = data.filter(row => row.length >= 2 && row[2]);
+                    document.getElementById('update-timer').innerText = `Updated: ${new Date().toLocaleTimeString()}`;
+                    const totalData = validData.length - 1;
+                    
+                    if (totalData < renderedCount) { resetBoard(); updateBoard(validData); }
+                    else if (totalData > renderedCount) { updateBoard(validData); }
+
+                    document.getElementById('count-display').innerText = totalData;
+                })
+                .catch(err => {
+                    console.error("API Error:", err);
+                    document.getElementById('update-timer').innerText = "Sync Error";
+                });
+        }
+
+        function resetBoard() {
+            document.getElementById('note-layer').innerHTML = '';
+            placedPositions = [];
+            renderedCount = 0;
+            currentSeed = 1; 
+        }
+
+        /* หา function updateBoard แล้วแก้ท่อน loop ครับ */
+        function updateBoard(data) {
+            const layer = document.getElementById('note-layer');
+            const dataRows = data.slice(1);
+            for (let i = renderedCount; i < dataRows.length; i++) {
+                // เพิ่มตัว i ต่อท้าย เพื่อส่งลำดับไปเช็ค
+                createNote(dataRows[i], layer, i); 
+            }
+            renderedCount = dataRows.length;
+        }
+
+        /* แก้ function createNote ใหม่ตามนี้ครับ */
+function createNote(row, parent, index) { // <-- สังเกตว่ารับ index เพิ่มมา
+    const fullname = row[2] || '';
+    const skill = row[6] || '-';
+    const problem = row[7] || '-';
+    const future = row[8] || '-';
+    let nickname = row[3] || fullname.split(' ')[0];
+    if (nickname.length > 10) nickname = nickname.substring(0, 9) + '..';
+
+    const randomImg = noteImages[Math.floor(myRandom() * noteImages.length)];
+    const noteW = 3.5; 
+    const noteH = 5.0;
+    const pos = findSmartPosition(noteW, noteH);
+    if (!pos) return; 
+
+    // --- เช็คว่าเป็นลำดับที่ 1, 3, 5, 7... หรือไม่ (เลขคี่) ---
+    // index เริ่มที่ 0 (คือคนที่ 1) ดังนั้น (0+1)%2 != 0 คือจริง
+    const giftNumbers = [1, 7, 25, 26, 53];
+    const isGift = giftNumbers.includes(index + 1);
+
+    // สร้าง Note (แต่ยังไม่ให้โชว์ถ้าเป็น Gift)
+    const note = document.createElement('div');
+    note.className = 'sticky-note';
+    note.style.backgroundImage = `url('${randomImg}')`;
+    note.style.left = pos.x + '%';
+    note.style.top = pos.y + '%';
+    
+    const rotate = Math.floor(myRandom() * 20) - 10; 
+    note.style.setProperty('--rot', rotate + 'deg'); 
+
+    note.innerHTML = `
+        <div class="content-wrap">
+            <div class="nickname">${nickname}</div>
+            <div class="mini-text">"${skill}"</div>
+        </div>
+    `;
+
+    note.onclick = function() {
+        openModal({
+            nickname: nickname, skill: skill, problem: problem, future: future, bgImage: randomImg
+        });
+    };
+
+    // --- ส่วนของ Gift Box Logic ---
+    if (isGift) {
+        // ถ้าเป็นคนพิเศษ ให้ซ่อน Note ไว้ก่อน
+        note.style.opacity = '0';
+        note.style.pointerEvents = 'none'; // ห้ามกดทะลุกล่อง
+
+        // สร้างกล่องของขวัญ
+        const gift = document.createElement('div');
+        gift.className = 'gift-box';
+        gift.innerText = '🎁'; // ใช้ Emoji กล่องของขวัญ
+        gift.style.left = pos.x + '%';
+        gift.style.top = pos.y + '%';
+        
+        // เมื่อคลิกที่กล่อง
+        gift.onclick = function() {
+            // 1. เล่น Animation ระเบิดกล่อง
+            this.classList.add('opening');
+            
+            // 2. รอแป๊บนึง (0.4วิ) ให้กล่องเริ่มจาง แล้วค่อยโชว์ Note
+            setTimeout(() => {
+                gift.remove(); // ลบกล่องทิ้ง
+                note.style.opacity = '1';
+                note.style.pointerEvents = 'auto'; // ให้กด Note ได้
+                
+                // Reset Animation ของ Note ให้เด้งขึ้นมาใหม่เหมือนเพิ่งแปะ
+                note.style.animation = 'none';
+                note.offsetHeight; /* trigger reflow */
+                note.style.animation = 'popInElastic 0.6s forwards'; 
+            }, 400); 
+        };
+        
+        parent.appendChild(gift); // แปะกล่องลงไป
+    }
+
+    parent.appendChild(note); // แปะ Note ลงไป (ถ้าเป็น gift มันจะถูกซ่อนอยู่ใต้กล่อง)
+}
+
+        function openModal(data) {
+            document.getElementById('m-nickname').innerText = data.nickname;
+            document.getElementById('m-skill').innerHTML = `<strong>My Code Name:</strong>${data.skill}`;
+            document.getElementById('m-problem').innerHTML = `<strong>Skill:</strong>${data.problem}`;
+            document.getElementById('m-future').innerHTML = `<strong>Future:</strong>${data.future}`;
+            document.getElementById('modal-card').style.backgroundImage = `url('${data.bgImage}')`;
+            document.getElementById('note-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('note-modal').classList.remove('active');
+        }
+
+        function findSmartPosition(w, h) {
+    // --- รอบที่ 1: พยายามหาที่ว่างสวยๆ แบบ "ไม่ทับใคร" (เหมือนเดิม แต่เพิ่มประสิทธิภาพ) ---
+    const maxAttempts = 5000; 
+    for (let i = 0; i < maxAttempts; i++) {
+        const targetPoly = myRandom() < 0.5 ? leftWingPoly : rightWingPoly;
+        const x = myRandom() * 100; 
+        const y = myRandom() * 100;
+        const padding = 0.5; 
+
+        if (isFullyInside(x, y, w, h, targetPoly, padding)) {
+            let collision = false;
+            for (let p of placedPositions) {
+                // ใช้ buffer ช่วยให้เบียดกันได้นิดหน่อย (10% ของขนาด)
+                const buffer = w * 0.1; 
+                const overlap = !(x + w - buffer < p.x || x > p.x + p.w - buffer || y + h - buffer < p.y || y > p.y + p.h - buffer);
+                if (overlap) { collision = true; break; }
+            }
+            if (!collision) { 
+                placedPositions.push({x, y, w, h}); 
+                return {x, y}; 
+            }
+        }
+    }
+
+    // --- 🔥 รอบที่ 2 (Plan B): ถ้าที่เต็มจริงๆ ให้หาจุดที่ "ขี่กันน้อยที่สุด" ---
+    // แทนที่จะวางสุ่มๆ เราจะสุ่มมา 500 จุดแล้วเลือกจุดที่ "แย่น้อยที่สุด"
+    let bestCandidate = null;
+    let minOverlapArea = Infinity;
+    const noteArea = w * h;
+
+    for (let j = 0; j < 500; j++) {
+        const targetPoly = myRandom() < 0.5 ? leftWingPoly : rightWingPoly;
+        const x = myRandom() * 100; 
+        const y = myRandom() * 100;
+        
+        if (isFullyInside(x, y, w, h, targetPoly, 0)) {
+            let currentTotalOverlap = 0;
+            let maxOverlapWithOne = 0;
+
+            for (let p of placedPositions) {
+                let overlapW = Math.max(0, Math.min(x + w, p.x + p.w) - Math.max(x, p.x));
+                let overlapH = Math.max(0, Math.min(y + h, p.y + p.h) - Math.max(y, p.y));
+                
+                if (overlapW > 0 && overlapH > 0) {
+                    let area = overlapW * overlapH;
+                    currentTotalOverlap += area;
+                    maxOverlapWithOne = Math.max(maxOverlapWithOne, area);
+                }
+            }
+
+            // เงื่อนไข: ยอมรับจุดนี้ถ้า "ทับใบใดใบหนึ่ง" ไม่เกิน 40% (ให้เห็นชื่อบ้าง)
+            if (maxOverlapWithOne < noteArea * 0.4) {
+                if (currentTotalOverlap < minOverlapArea) {
+                    minOverlapArea = currentTotalOverlap;
+                    bestCandidate = {x, y};
+                }
+            }
+            
+            // ถ้าโชคดีสุ่มเจอจุดที่ทับน้อยมากๆ ใน Plan B นี้ ก็ให้หยุดสุ่มแล้วเอาเลย
+            if (minOverlapArea < noteArea * 0.15) break; 
+        }
+    }
+
+    if (bestCandidate) {
+        // สำคัญ: ต้อง push ลงรายการด้วยเพื่อให้ใบต่อไปรู้ว่าตรงนี้มีคนจองแล้ว (เกยกันได้แต่ไม่ทับมิด)
+        placedPositions.push({x: bestCandidate.x, y: bestCandidate.y, w, h});
+        return bestCandidate;
+    }
+
+    // 🔥 รอบที่ 3 (Final Chance): ถ้าหาที่ทับน้อยกว่า 40% ไม่ได้จริงๆ 
+    // ยอมให้วางตรงไหนก็ได้ในปีก แต่ยังคงเลือกจุดที่ทับน้อยที่สุดเท่าที่สุ่มได้
+    const xFallback = myRandom() * 40 + (myRandom() < 0.5 ? 10 : 50); // พยายามให้อยู่แถวๆ กลางปีก
+    const yFallback = myRandom() * 50 + 20;
+    return {x: xFallback, y: yFallback}; 
+}
+        function isFullyInside(x, y, w, h, poly, padding) {
+            if (!isInside(x + padding, y + padding, poly)) return false;
+            if (!isInside(x + w - padding, y + padding, poly)) return false;
+            if (!isInside(x + padding, y + h - padding, poly)) return false;
+            if (!isInside(x + w - padding, y + h - padding, poly)) return false;
+            return true;
+        }
+
+        function isInside(x, y, vs) {
+            var inside = false;
+            for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                var xi = vs[i].x, yi = vs[i].y;
+                var xj = vs[j].x, yj = vs[j].y;
+                var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function saveBoard(format) {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'Saving...'; btn.disabled = true;
+
+            setTimeout(() => {
+                const node = document.getElementById('game-area');
+                const config = { style: { 'transform': 'none', 'background-color': 'transparent' }, quality: 1.0, filter: (node) => (node.tagName !== 'link' && node.tagName !== 'style') };
+                if(typeof domtoimage === 'undefined') { alert('Error: Library not found.'); btn.innerText = originalText; btn.disabled = false; return; }
+                let savePromise = (format === 'png') ? domtoimage.toPng(node, config) : domtoimage.toSvg(node, config);
+                savePromise.then(function (dataUrl) {
+                    const link = document.createElement('a'); link.download = `rock-board-export.${format}`; link.href = dataUrl; link.click();
+                }).catch(function (error) { console.error('Save failed:', error); alert('Error: ' + error.message);
+                }).finally(() => { btn.innerText = originalText; btn.disabled = false; });
+            }, 500);
+        }
+
+        function createLeaf() {
+            const container = document.getElementById('leaf-container');
+            const leaf = document.createElement('div');
+            leaf.classList.add('leaf');
+            leaf.style.left = Math.random() * 100 + 'vw';
+            const size = Math.random() * 15 + 10;
+            leaf.style.width = size + 'px'; leaf.style.height = size + 'px';
+            const colors = ['#a3b986', '#8fbc8f', '#6b8e23', '#556b2f', '#dadd98'];
+            leaf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const duration = Math.random() * 9 + 9;
+            leaf.style.animationDuration = duration + 's';
+            container.appendChild(leaf);
+            setTimeout(() => { leaf.remove(); }, duration * 1000);
+        }
+
+        setInterval(createLeaf, 500);
+        fetchData();
+        setInterval(fetchData, 3000);
+    </script>
+        <script>
+    // รอฟังคำสั่งจากไฟล์ Master
+    window.addEventListener('message', function(event) {
+        if (event.data.action === 'CAPTURE_REQUEST') {
+            const node = document.getElementById('game-area'); // จุดที่จะแคปภาพ (แก้ได้ถ้าอยากแคปทั้ง body)
+            
+            // ตั้งค่า Config ให้พื้นหลังโปร่งใส เพื่อไปวางบนฉากใหม่ได้สวยๆ
+            const config = { 
+                style: { 'transform': 'scale(1)', 'transform-origin': 'top left' },
+                quality: 1.0,
+                // กรองพวก script หรือ style ที่ไม่จำเป็นออก
+                filter: (node) => (node.tagName !== 'LINK' && node.tagName !== 'STYLE')
+            };
+
+            domtoimage.toPng(node, config)
+                .then(function (dataUrl) {
+                    // ส่งรูปกลับไปให้ Master
+                    window.parent.postMessage({
+                        id: event.data.id, // ส่งชื่อไฟล์กลับไปบอกว่ามาจากไฟล์ไหน
+                        image: dataUrl
+                    }, '*');
+                })
+                .catch(function (error) {
+                    console.error('oops, something went wrong!', error);
+                });
+        }
+    });
+</script>
+</body>
+</html>
