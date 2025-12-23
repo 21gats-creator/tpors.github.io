@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Let's Rock You to Fly</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Mali:wght@400;600&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        :root {
+            --rock-dark: #333;
+            --accent-purple: #764ba2;
+            --accent-blue: #667eea;
+            --text-gray: #666;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f5f5f7;
+            margin: 0; padding: 40px 20px 0 20px; /* ลด padding ล่างเพื่อให้ footer ติดขอบ */
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- Header & Typewriter --- */
+        header { text-align: center; margin-bottom: 20px; }
+        .typewriter-container { height: 24px; margin-bottom: 40px; }
+        #typewriter-text { color: var(--text-gray); font-size: 1.1rem; font-weight: 300; font-family: 'Fira Code', monospace; }
+        .cursor { border-right: 2px solid var(--accent-purple); animation: blink 0.7s infinite; margin-left: 5px; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* --- Grid & Cards --- */
+        .room-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 25px; width: 100%; max-width: 1200px;
+            flex-grow: 1; /* ดัน footer ลงข้างล่าง */
+            margin-bottom: 60px;
+        }
+        .room-card {
+            background: #fff; border-radius: 30px; padding: 30px 20px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05);
+            transition: 0.3s;
+        }
+        .room-card:hover { transform: translateY(-10px); }
+        .room-number {
+            font-family: 'Mali', cursive; font-size: 3.5rem; font-weight: 600;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .qr-wrapper { background: #fff; padding: 15px; border-radius: 15px; margin: 15px 0 10px 0; border: 2px solid #f0f0f0; }
+        canvas, img { width: 160px !important; height: 160px !important; }
+
+        /* --- Links & Buttons --- */
+        .btn-link { display: inline-block; margin-bottom: 8px; color: var(--accent-purple); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+        .raw-url { font-size: 0.7rem; color: #999; word-break: break-all; text-align: center; max-width: 220px; margin-bottom: 20px; font-family: 'Fira Code', monospace; background: #f9f9f9; padding: 5px 10px; border-radius: 8px; }
+        .btn-download { background: #f8f9fa; border: 1.5px solid #eee; padding: 8px 15px; border-radius: 50px; cursor: pointer; font-family: 'Kanit', sans-serif; transition: 0.3s; font-size: 0.8rem; color: #555; }
+        .btn-download:hover { background: var(--accent-purple); color: white; }
+
+        /* --- FOOTER STYLE (ส่วนที่เพิ่มใหม่) --- */
+        footer {
+            width: 100%;
+            padding: 30px 0;
+            margin-top: 50px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .credit-name {
+            font-family: 'Fira Code', monospace;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        .footer-heart { color: #e25555; display: inline-block; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 style="font-family: 'Mali', cursive; font-size: 2.8rem; margin-bottom: 5px;">Let's Rock You to Fly</h1>
+        <div class="typewriter-container">
+            <span id="typewriter-text"></span><span class="cursor"></span>
+        </div>
+    </header>
+
+    <div class="room-grid" id="roomGrid"></div>
+
+    <footer>
+    <p>Developed by <span class="">21GATS</span></p>
+    
+    <div style="margin: 15px 0; font-family: 'Kanit', sans-serif;">
+        <span style="font-size: 0.9rem; color: #666;">
+            <span style="color: #2ecc71; font-size: 1.2rem;">●</span> Users Online: 
+            <strong id="online-count" style="font-size: 1.1rem; color: #333;">...</strong>
+        </span>
+    </div>
+    <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 5px;">© 2025 • LET'S ROCK YOU TO FLY</p>
+</footer>
+
+    <script>
+        // --- 1. ระบบ Typewriter ---
+        const textElement = document.getElementById('typewriter-text');
+        const phrases = ["Welcome to our creative community.", "Connect with inspiring minds.", "Discover the power of rocks.", "Share your journey with us."];
+        let phraseIndex = 0, charIndex = 0, isDeleting = false, typeSpeed = 100;
+
+        function type() {
+            const currentPhrase = phrases[phraseIndex];
+            if (isDeleting) {
+                textElement.textContent = currentPhrase.substring(0, charIndex - 1);
+                charIndex--;
+                typeSpeed = 50;
+            } else {
+                textElement.textContent = currentPhrase.substring(0, charIndex + 1);
+                charIndex++;
+                typeSpeed = 100;
+            }
+            if (!isDeleting && charIndex === currentPhrase.length) { isDeleting = true; typeSpeed = 2000; }
+            else if (isDeleting && charIndex === 0) { isDeleting = false; phraseIndex = (phraseIndex + 1) % phrases.length; typeSpeed = 500; }
+            setTimeout(type, typeSpeed);
+        }
+        document.addEventListener('DOMContentLoaded', type);
+
+        // --- 2. ระบบสร้าง QR Code ---
+        const roomForms = [
+            "https://forms.gle/V9yC8ovgAFyyMSYS9", "https://forms.gle/1zmdZas27t9sMght8",
+            "https://forms.gle/raAtKpHTnPbwHLui6", "https://forms.gle/2PX1dodwCQJGAK5j6",
+            "https://forms.gle/TsbGC7HHBezvMrkT6", "https://forms.gle/pjGLsjYCQZz8SR4W8",
+            "https://forms.gle/akcBFCq7pZus94CR8", "https://forms.gle/RgzFy8i1iJL41Bct5"
+        ];
+
+        const grid = document.getElementById('roomGrid');
+
+        roomForms.forEach((formUrl, index) => {
+            const roomNum = index + 1;
+            const card = document.createElement('div');
+            card.className = 'room-card';
+            card.innerHTML = `
+                <a href="pattern${roomNum}.html" style="text-decoration:none; text-align:center;">
+                    <span class="room-number">${roomNum}</span>
+                    <div style="color:#888; font-size:0.7rem; letter-spacing: 1px; margin-bottom:10px;">ENTER BOARD</div>
+                </a>
+                <div class="qr-wrapper" id="qr-${roomNum}"></div>
+                <a href="${formUrl}" target="_blank" class="btn-link">🔗 คลิกเข้าสู่ Google Form</a>
+                <div class="raw-url">${formUrl}</div>
+                <button class="btn-download" onclick="downloadQR(${roomNum})">📥 Download QR (800px)</button>
+            `;
+            grid.appendChild(card);
+
+            new QRCode(document.getElementById(`qr-${roomNum}`), {
+                text: formUrl,
+                width: 800, height: 800,
+                colorDark : "#000000", colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+        });
+
+        function downloadQR(num) {
+            const canvas = document.getElementById(`qr-${num}`).querySelector('canvas');
+            const link = document.createElement('a');
+            link.download = `Rock_Room_${num}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+    </script>
+    
+</body>
+</html>
